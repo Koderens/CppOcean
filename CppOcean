@@ -1,0 +1,90 @@
+#include <iostream>
+#include <mysql/mysql.h>
+
+using namespace std;
+
+// Veritabanı bağlantı bilgileri
+const string DB_HOST = "localhost";
+const string DB_USER = "kullaniciadi";
+const string DB_PASSWORD = "sifre";
+const string DB_NAME = "cpp_ocean";
+
+// Veritabanı bağlantısını açar
+MYSQL* db_connect() {
+  MYSQL *db_conn = mysql_init(NULL);
+
+  if (db_conn == NULL) {
+    cerr << "MySQL bağlantısı kurulamadı: " << mysql_error(db_conn) << endl;
+    return NULL;
+  }
+
+  if (mysql_real_connect(db_conn, DB_HOST.c_str(), DB_USER.c_str(), DB_PASSWORD.c_str(), DB_NAME.c_str(), 0, NULL, 0) == 0) {
+    cerr << "Veritabanına bağlanılamadı: " << mysql_error(db_conn) << endl;
+    mysql_close(db_conn);
+    return NULL;
+  }
+
+  return db_conn;
+}
+
+// Veritabanı bağlantısını kapatır
+void db_disconnect(MYSQL *db_conn) {
+  mysql_close(db_conn);
+}
+
+// Soru sorar
+void soruSor(MYSQL *db_conn, string soru) {
+  string sql = "INSERT INTO sorular (soru) VALUES ('" + soru + "')";
+
+  if (mysql_query(db_conn, sql.c_str()) != 0) {
+    cerr << "Soru sorma hatası: " << mysql_error(db_conn) << endl;
+    return;
+  }
+
+  cout << "Sorunuz başarıyla veritabanına kaydedildi." << endl;
+}
+
+// Cevapları gösterir
+void cevaplariGoster(MYSQL *db_conn, int soru_id) {
+  string sql = "SELECT cevap FROM cevaplar WHERE soru_id = " + to_string(soru_id);
+
+  if (mysql_query(db_conn, sql.c_str()) != 0) {
+    cerr << "Cevapları alma hatası: " << mysql_error(db_conn) << endl;
+    return;
+  }
+
+  MYSQL_RES *result = mysql_store_result(db_conn);
+
+  if (result == NULL) {
+    cerr << "Sorgu sonucu alınamadı: " << mysql_error(db_conn) << endl;
+    return;
+  }
+
+  while (MYSQL_ROW row = mysql_fetch_row(result)) {
+    cout << row[0] << endl;
+  }
+
+  mysql_free_result(result);
+}
+
+int main() {
+  MYSQL *db_conn = db_connect();
+
+  if (db_conn == NULL) {
+    return 1;
+  }
+
+  // KULLANIM ÖRNEKLERİ
+
+  // Soru sor
+  soruSor(db_conn, "Bir fonksiyon nasıl yazılır?");
+
+  // Cevapları göster
+  cevaplariGoster(db_conn, 1); // 1. sorunun cevapları
+
+  // ...
+
+  db_disconnect(db_conn);
+
+  return 0;
+}
